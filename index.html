@@ -90,7 +90,7 @@ body {
     <span class="text-2xl sm:text-3xl">✏️</span>
     <div>
       <h1 class="text-lg sm:text-xl font-black text-sky-900 tracking-wide leading-tight">直式加法練習</h1>
-      <p class="text-[10px] sm:text-xs text-sky-700 font-bold hidden sm:block">必須先數完個位，才能數十位或進位</p>
+      <p class="text-[10px] sm:text-xs text-sky-700 font-bold hidden sm:block">個位與十位分開重新數 • 必須先數完個位</p>
     </div>
   </div>
   <div class="bg-white/95 backdrop-blur border-2 border-amber-300 px-3 py-1 rounded-full shadow-md flex items-center space-x-1.5">
@@ -103,7 +103,7 @@ body {
   <section class="md:col-span-6 bg-white rounded-2xl sm:rounded-3xl shadow-xl border-4 border-sky-200 p-3 sm:p-4 left-panel relative">
     <div class="w-full bg-amber-100/90 border border-amber-300 rounded-xl py-1 px-2 text-center text-[10px] sm:text-xs font-bold text-amber-900 mb-1.5 flex items-center justify-center space-x-1 shadow-sm flex-shrink-0">
       <span class="animate-bounce">👆</span>
-      <span>必須先點擊個位數字數手指，完成後才可數十位或進位</span>
+      <span>點擊直式上的數字可彈出手指數數（必須先數個位）</span>
     </div>
     <div class="w-full max-w-[280px] mx-auto grid grid-cols-4 gap-1 text-center text-slate-400 font-extrabold text-xs sm:text-sm mb-0.5 flex-shrink-0">
       <div></div>
@@ -115,12 +115,12 @@ body {
       <div class="grid grid-cols-4 gap-1 text-3xl sm:text-4xl font-bold text-gray-800 text-center tracking-wider items-center">
         <div></div>
         <div id="hund-1" class="digit-font text-sky-900 py-0.5"></div>
-        <div id="tens-1" onclick="handleDigitClick('tens', 1)" class="digit-font digit-clickable text-sky-900 py-0.5">1</div>
-        <div id="units-1" onclick="handleDigitClick('units', 1)" class="digit-font digit-clickable text-sky-900 py-0.5">3</div>
+        <div id="tens-1" class="digit-font text-sky-900 py-0.5"></div>
+        <div id="units-1" class="digit-font text-sky-900 py-0.5"></div>
         <div class="text-sky-500 font-black text-2xl sm:text-3xl text-right font-mono">+</div>
         <div id="hund-2" class="digit-font text-sky-900 py-0.5"></div>
-        <div id="tens-2" onclick="handleDigitClick('tens', 2)" class="digit-font digit-clickable text-sky-900 py-0.5">2</div>
-        <div id="units-2" onclick="handleDigitClick('units', 2)" class="digit-font digit-clickable text-sky-900 py-0.5">2</div>
+        <div id="tens-2" class="digit-font text-sky-900 py-0.5"></div>
+        <div id="units-2" class="digit-font text-sky-900 py-0.5"></div>
       </div>
       <!-- 進位格 -->
       <div class="grid grid-cols-4 gap-1 items-center mt-2 mb-0.5">
@@ -187,7 +187,7 @@ body {
       <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center border-4 border-amber-200 text-4xl shadow-sm animate-pulse">💡</div>
       <div class="space-y-0.5">
         <p class="text-sky-900 font-extrabold text-base sm:text-lg">請先點擊個位數字開始順數</p>
-        <p class="text-slate-500 text-xs sm:text-sm font-bold">完成個位後，才能數十位或進位</p>
+        <p class="text-slate-500 text-xs sm:text-sm font-bold">個位與十位會分開重新數，完成個位後才能數十位／進位</p>
       </div>
     </div>
     <div id="gesture-active-view" class="flex-1 flex flex-col items-center justify-between min-h-0 py-1 hidden">
@@ -201,7 +201,7 @@ body {
   </section>
 </main>
 <footer class="mt-1 text-center text-[10px] text-sky-700/70 font-bold flex-shrink-0">
-  小學一年級數學直式加法練習（含進位 • 一位數混合）• 必須先數個位
+  小學一年級數學直式加法練習（含進位 • 一位數混合）• 個位與十位分開重新數
 </footer>
 
 <!-- SUCCESS -->
@@ -233,7 +233,7 @@ let inputHund = '', inputTens = '', inputUnits = '';
 let inputCarryH = '', inputCarryT = '';
 let score = 0;
 let columnSum = { units: 0, tens: 0, hund: 0 };
-let unitsGestureCompleted = false; // 關鍵：必須先完成個位手指數
+let unitsGestureCompleted = false;
 let gestureActive = false;
 let gestureTargetCol = '';
 let gestureRemainingCount = 0;
@@ -278,17 +278,29 @@ function generateNewQuestion() {
   document.getElementById('tens-2').innerText = currentT2 > 0 ? currentT2 : '';
   document.getElementById('units-2').innerText = currentU2;
 
-  updateDigitClickability();
+  // ★ 每次出新題都重新綁定點擊事件（修復「按數字沒有彈出手指數數」）
+  bindDigitClicks();
+
   clearInputs();
   resetGesturePanel();
   columnSum = { units: 0, tens: 0, hund: 0 };
-  unitsGestureCompleted = false; // 每題重置
+  unitsGestureCompleted = false;
   isSpeaking = false;
 }
 
-function updateDigitClickability() {
+function bindDigitClicks() {
+  // 個位永遠可點
+  const u1 = document.getElementById('units-1');
+  const u2 = document.getElementById('units-2');
+  u1.classList.add('digit-clickable');
+  u2.classList.add('digit-clickable');
+  u1.onclick = () => handleDigitClick('units', 1);
+  u2.onclick = () => handleDigitClick('units', 2);
+
+  // 十位只在有數字時可點
   const t1 = document.getElementById('tens-1');
   const t2 = document.getElementById('tens-2');
+
   if (currentT1 > 0) {
     t1.classList.add('digit-clickable');
     t1.onclick = () => handleDigitClick('tens', 1);
@@ -296,6 +308,7 @@ function updateDigitClickability() {
     t1.classList.remove('digit-clickable');
     t1.onclick = null;
   }
+
   if (currentT2 > 0) {
     t2.classList.add('digit-clickable');
     t2.onclick = () => handleDigitClick('tens', 2);
@@ -405,7 +418,7 @@ function getCarryBase(col) {
 }
 
 function handleDigitClick(column, row) {
-  // ★ 核心限制：必須先完成個位手指數，才能數十位
+  // 必須先完成個位
   if (column === 'tens' && !unitsGestureCompleted) {
     alert('請先完成個位的順數！');
     return;
@@ -425,13 +438,12 @@ function handleDigitClick(column, row) {
     otherVal  = (row === 1) ? currentT2 : currentT1;
   }
 
-  // 已有進度就繼續，否則用另一個數字作起點（被加數 / 加數）
-  const base = (columnSum[column] > 0) ? columnSum[column] : otherVal;
+  // 個位與十位每次都重新數（以另一個數字為起點）
+  const base = otherVal;
   startHandGesture(column, tappedVal, base, false);
 }
 
 function handleCarryClick(col) {
-  // ★ 核心限制：必須先完成個位手指數，才能數進位
   if (!unitsGestureCompleted) {
     alert('請先完成個位的順數，才能使用進位！');
     return;
@@ -466,7 +478,7 @@ function startHandGesture(column, tappedDigit, baseDigit, isCarry) {
   document.getElementById('gesture-active-view').classList.remove('hidden');
 
   const colName = column === 'units' ? '個位' : (column === 'tens' ? '十位' : '百位');
-  document.getElementById('gesture-tag').innerText = isCarry ? `${colName}進位順數` : `${colName}順數`;
+  document.getElementById('gesture-tag').innerText = isCarry ? `${colName}進位順數` : `${colName}重新順數`;
   document.getElementById('hand-svg-container').classList.remove('hand-disabled');
 
   if (gestureRemainingCount === 0) {
@@ -501,7 +513,6 @@ function handleHandTap() {
   if (gestureRemainingCount === 0) {
     columnSum[gestureTargetCol] = gestureCurrentSum;
 
-    // ★ 標記個位已完成
     if (gestureTargetCol === 'units') {
       unitsGestureCompleted = true;
     }
@@ -521,11 +532,11 @@ function updateGestureUI(isFinished = false) {
 
   if (isFinished) {
     stepInfo.innerText = `🎉 數完喇！目前合計：${gestureCurrentSum}`;
-    countBubble.innerText = `可繼續點其他數字或進位格繼續順數`;
+    countBubble.innerText = `可繼續點其他數字或進位格`;
     hintText.innerText = `請點擊左邊數字盤填寫答案，或繼續順數`;
   } else {
     stepInfo.innerText = `點擊手指進行順數`;
-    countBubble.innerText = `由 ${gestureBaseVal} 開始繼續加`;
+    countBubble.innerText = `由 ${gestureBaseVal} 開始重新加`;
     hintText.innerText = `👇 點擊手指頭，繼續順數！`;
   }
   container.innerHTML = generateHandSVG(gestureRemainingCount);
