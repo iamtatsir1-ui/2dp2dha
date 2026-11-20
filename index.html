@@ -90,7 +90,7 @@ body {
     <span class="text-2xl sm:text-3xl">✏️</span>
     <div>
       <h1 class="text-lg sm:text-xl font-black text-sky-900 tracking-wide leading-tight">直式加法練習</h1>
-      <p class="text-[10px] sm:text-xs text-sky-700 font-bold hidden sm:block">個位與十位分開重新數 • 必須先數完個位</p>
+      <p class="text-[10px] sm:text-xs text-sky-700 font-bold hidden sm:block">個位與十位可自由點擊順數 • 支援進位</p>
     </div>
   </div>
   <div class="bg-white/95 backdrop-blur border-2 border-amber-300 px-3 py-1 rounded-full shadow-md flex items-center space-x-1.5">
@@ -103,7 +103,7 @@ body {
   <section class="md:col-span-6 bg-white rounded-2xl sm:rounded-3xl shadow-xl border-4 border-sky-200 p-3 sm:p-4 left-panel relative">
     <div class="w-full bg-amber-100/90 border border-amber-300 rounded-xl py-1 px-2 text-center text-[10px] sm:text-xs font-bold text-amber-900 mb-1.5 flex items-center justify-center space-x-1 shadow-sm flex-shrink-0">
       <span class="animate-bounce">👆</span>
-      <span>點擊直式上的數字可彈出手指數數（必須先數個位）</span>
+      <span>點擊直式上的數字可彈出手指數數（個位／十位自由選擇）</span>
     </div>
     <div class="w-full max-w-[280px] mx-auto grid grid-cols-4 gap-1 text-center text-slate-400 font-extrabold text-xs sm:text-sm mb-0.5 flex-shrink-0">
       <div></div>
@@ -186,8 +186,8 @@ body {
     <div id="gesture-default-view" class="flex-1 flex flex-col items-center justify-center text-center p-4 space-y-3 min-h-0">
       <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center border-4 border-amber-200 text-4xl shadow-sm animate-pulse">💡</div>
       <div class="space-y-0.5">
-        <p class="text-sky-900 font-extrabold text-base sm:text-lg">請先點擊個位數字開始順數</p>
-        <p class="text-slate-500 text-xs sm:text-sm font-bold">個位與十位會分開重新數，完成個位後才能數十位／進位</p>
+        <p class="text-sky-900 font-extrabold text-base sm:text-lg">點擊直式上的數字開始順數</p>
+        <p class="text-slate-500 text-xs sm:text-sm font-bold">個位與十位可自由選擇，完成後可繼續點其他數字或進位</p>
       </div>
     </div>
     <div id="gesture-active-view" class="flex-1 flex flex-col items-center justify-between min-h-0 py-1 hidden">
@@ -201,7 +201,7 @@ body {
   </section>
 </main>
 <footer class="mt-1 text-center text-[10px] text-sky-700/70 font-bold flex-shrink-0">
-  小學一年級數學直式加法練習（含進位 • 一位數混合）• 個位與十位分開重新數
+  小學一年級數學直式加法練習（含進位 • 一位數混合）• 個位與十位可自由順數
 </footer>
 
 <!-- SUCCESS -->
@@ -233,7 +233,6 @@ let inputHund = '', inputTens = '', inputUnits = '';
 let inputCarryH = '', inputCarryT = '';
 let score = 0;
 let columnSum = { units: 0, tens: 0, hund: 0 };
-let unitsGestureCompleted = false;
 let gestureActive = false;
 let gestureTargetCol = '';
 let gestureRemainingCount = 0;
@@ -241,6 +240,7 @@ let gestureBaseVal = 0;
 let gestureCurrentSum = 0;
 let gestureIsCarry = false;
 let isSpeaking = false;
+let isZeroCase = false; // 新增：標記是否為加 0 的特殊情況
 
 window.onload = function() {
   generateNewQuestion();
@@ -278,14 +278,14 @@ function generateNewQuestion() {
   document.getElementById('tens-2').innerText = currentT2 > 0 ? currentT2 : '';
   document.getElementById('units-2').innerText = currentU2;
 
-  // ★ 每次出新題都重新綁定點擊事件（修復「按數字沒有彈出手指數數」）
+  // ★ 每次出新題都重新綁定點擊事件
   bindDigitClicks();
 
   clearInputs();
   resetGesturePanel();
   columnSum = { units: 0, tens: 0, hund: 0 };
-  unitsGestureCompleted = false;
   isSpeaking = false;
+  isZeroCase = false;
 }
 
 function bindDigitClicks() {
@@ -418,11 +418,7 @@ function getCarryBase(col) {
 }
 
 function handleDigitClick(column, row) {
-  // 必須先完成個位
-  if (column === 'tens' && !unitsGestureCompleted) {
-    alert('請先完成個位的順數！');
-    return;
-  }
+  // 已移除「必須先完成個位」的限制，現在可自由點擊個位或十位
 
   const el = document.getElementById(`${column}-${row}`);
   if (!el || el.innerText === '') return;
@@ -444,10 +440,7 @@ function handleDigitClick(column, row) {
 }
 
 function handleCarryClick(col) {
-  if (!unitsGestureCompleted) {
-    alert('請先完成個位的順數，才能使用進位！');
-    return;
-  }
+  // 已移除「必須先完成個位」的限制，進位可直接使用
 
   let carryVal = 0;
   if (col === 'tens') {
@@ -473,6 +466,7 @@ function startHandGesture(column, tappedDigit, baseDigit, isCarry) {
   gestureCurrentSum = baseDigit;
   gestureIsCarry = isCarry;
   isSpeaking = false;
+  isZeroCase = (tappedDigit === 0); // 標記是否為加 0 的情況
 
   document.getElementById('gesture-default-view').classList.add('hidden');
   document.getElementById('gesture-active-view').classList.remove('hidden');
@@ -481,19 +475,52 @@ function startHandGesture(column, tappedDigit, baseDigit, isCarry) {
   document.getElementById('gesture-tag').innerText = isCarry ? `${colName}進位順數` : `${colName}重新順數`;
   document.getElementById('hand-svg-container').classList.remove('hand-disabled');
 
+  // ★ 特殊處理：加 0 的情況 → 顯示拳頭
   if (gestureRemainingCount === 0) {
-    document.getElementById('gesture-step-info').innerText = `不需要按手指`;
-    document.getElementById('gesture-count-bubble').innerText = `請在左邊填寫答案`;
-    document.getElementById('hand-svg-container').innerHTML = `<div class="text-center py-4 font-black text-xl text-emerald-600">👌 不需要順數，請在左邊輸入答案！</div>`;
-    document.getElementById('gesture-hint-text').innerText = '請在左邊數字盤輸入答案';
-    setTimeout(() => resetGesturePanel(), 2200);
+    document.getElementById('gesture-step-info').innerText = `點擊拳頭確認加 0`;
+    document.getElementById('gesture-count-bubble').innerText = `由 ${gestureBaseVal} 加 0`;
+    document.getElementById('hand-svg-container').innerHTML = generateFistSVG();
+    document.getElementById('gesture-hint-text').innerText = '👇 點擊拳頭，確認結果！';
     return;
   }
+
   updateGestureUI(false);
 }
 
 function handleHandTap() {
-  if (!gestureActive || gestureRemainingCount <= 0 || isSpeaking) return;
+  if (!gestureActive || isSpeaking) return;
+
+  // ★ 特殊處理：加 0 的拳頭確認
+  if (isZeroCase && gestureRemainingCount === 0) {
+    playPopSound();
+    isSpeaking = true;
+    document.getElementById('hand-svg-container').classList.add('hand-disabled');
+
+    // 說出「X 加 0 等於 X」
+    const phrase = `${gestureBaseVal} 加 0 等於 ${gestureBaseVal}`;
+    speakCantonese(phrase, function() {
+      isSpeaking = false;
+      document.getElementById('hand-svg-container').classList.remove('hand-disabled');
+      // 設定合計值
+      columnSum[gestureTargetCol] = gestureBaseVal;
+      // 短暫顯示完成後消失
+      setTimeout(() => resetGesturePanel(), 600);
+    });
+
+    // 視覺回饋
+    const handContainer = document.getElementById('hand-svg-container');
+    handContainer.classList.add('tap-animate');
+    setTimeout(() => handContainer.classList.remove('tap-animate'), 180);
+
+    // 更新文字提示
+    document.getElementById('gesture-step-info').innerText = `🎉 ${gestureBaseVal} 加 0 等於 ${gestureBaseVal}`;
+    document.getElementById('gesture-count-bubble').innerText = `確認完成`;
+    document.getElementById('gesture-hint-text').innerText = '';
+    return;
+  }
+
+  // 正常順數邏輯
+  if (gestureRemainingCount <= 0) return;
 
   gestureRemainingCount--;
   gestureCurrentSum++;
@@ -512,10 +539,6 @@ function handleHandTap() {
 
   if (gestureRemainingCount === 0) {
     columnSum[gestureTargetCol] = gestureCurrentSum;
-
-    if (gestureTargetCol === 'units') {
-      unitsGestureCompleted = true;
-    }
 
     updateGestureUI(true);
     setTimeout(() => resetGesturePanel(), 2500);
@@ -545,6 +568,7 @@ function updateGestureUI(isFinished = false) {
 function resetGesturePanel() {
   gestureActive = false;
   isSpeaking = false;
+  isZeroCase = false;
   document.getElementById('gesture-default-view').classList.remove('hidden');
   document.getElementById('gesture-active-view').classList.add('hidden');
   document.getElementById('gesture-tag').innerText = '準備就緒';
@@ -593,6 +617,23 @@ function generateHandSVG(num) {
       <g transform="translate(170, 0)">${renderSingleHand(num - 5, true)}</g>
     </svg>`;
   }
+}
+
+// ★ 新增：收起所有手指的拳頭 SVG
+function generateFistSVG() {
+  return `
+  <svg class="w-40 h-48 sm:w-48 sm:h-56 drop-shadow-md" viewBox="0 0 170 270" fill="none">
+    <!-- 手腕 -->
+    <path d="M 50 195 L 50 260 C 50 265 120 265 120 260 L 120 195 Z" fill="#FED7AA" stroke="#EA580C" stroke-width="4" stroke-linejoin="round"/>
+    <!-- 拳頭主體（收起的手指） -->
+    <path d="M 38 110 C 32 95 42 80 58 78 L 112 78 C 128 80 138 95 132 110 L 128 175 C 128 190 42 190 42 175 Z" fill="#FDBA74" stroke="#EA580C" stroke-width="4" stroke-linejoin="round"/>
+    <!-- 大拇指跨過 -->
+    <path d="M 42 145 C 18 135 12 105 28 92 C 42 82 55 100 58 125 Z" fill="#FDBA74" stroke="#EA580C" stroke-width="4" stroke-linejoin="round"/>
+    <!-- 拳頭上的指節線條（增加立體感） -->
+    <path d="M 55 95 Q 70 90 85 95" stroke="#EA580C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 58 115 Q 75 110 92 115" stroke="#EA580C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 60 135 Q 78 130 95 135" stroke="#EA580C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
 }
 
 function checkAnswer() {
